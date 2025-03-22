@@ -1,4 +1,4 @@
-# YamCam Viewer
+0# YamCam Viewer
 
 A simple and elegant web-based tool to automatically refresh and view images from a YamCam stream. Perfect for monitoring YamCam feeds that only provide static image URLs.
 
@@ -22,7 +22,7 @@ A simple and elegant web-based tool to automatically refresh and view images fro
    - Example URL: `http://127.0.0.1:8888/out.jpg`
 
 ### Step 2: Use the YamCam Viewer
-1. Open the [YamCam Viewer](https://your-github-username.github.io/yamcam-viewer) (replace with your GitHub Pages link).
+1. Open the [YamCam Viewer](https://0xlittlespidy.github.io/yamcam-viewer/).
 2. Paste the copied URL into the **"Enter YamCam image URL"** field.
 3. Set the refresh interval (in seconds) in the **"Refresh interval"** field.
 4. Click **Start** to begin auto-refreshing the image.

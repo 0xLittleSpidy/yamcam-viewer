@@ -1,4 +1,4 @@
-0# YamCam Viewer
+# YamCam Viewer
 
 A simple and elegant web-based tool to automatically refresh and view images from a YamCam stream. Perfect for monitoring YamCam feeds that only provide static image URLs.
 

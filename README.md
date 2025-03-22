@@ -32,7 +32,7 @@ A simple and elegant web-based tool to automatically refresh and view images fro
 ## Example URL
 If your YamCam stream provides a static image URL like this:
 ```
-http://174.161.13.61:8888/out.jpg
+http://127.0.0.1:8888/out.jpg
 ```
 Paste it into the tool, and it will automatically refresh the image at your specified interval.
 

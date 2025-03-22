@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YamCam Stream Viewer</title>
+    <style>
+        :root {
+            --primary-color: #2c6aed;
+            --secondary-color: #1d5cad;
+            --background: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--background);
+            color: #2d3436;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 2.2rem;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        input {
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            flex: 1;
+            transition: border-color 0.2s ease;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: var(--secondary-color);
+        }
+
+        button:disabled {
+            background: #adb5bd;
+            cursor: not-allowed;
+        }
+
+        .status-bar {
+            margin-bottom: 1rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .image-wrapper {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e9ecef;
+            background: #f1f3f5; /* Light background for placeholder */
+        }
+
+        #liveImage {
+            width: 100%;
+            height: 70vh;
+            object-fit: contain;
+        }
+
+        .fullscreen-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+        }
+
+        .image-counter {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>YamCam Viewer</h1>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <input type="text" id="urlInput" 
+                   placeholder="Enter YamCam image URL" 
+                   autofocus>
+            <div class="input-group">
+                <input type="number" id="intervalInput" 
+                       min="1" max="600" value="2" 
+                       style="width: 100px;">
+                <span>seconds</span>
+            </div>
+            <div class="input-group">
+                <button onclick="startRefresh()" id="startButton">Start</button>
+                <button onclick="stopRefresh()" id="stopButton" disabled>Stop</button>
+                <button onclick="forceRefresh()" id="forceRefreshButton">Force Refresh</button>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div id="status">Ready</div>
+            <div id="lastUpdate"></div>
+        </div>
+
+        <!-- Image Container -->
+        <div class="image-wrapper">
+            <button class="fullscreen-btn" onclick="toggleImageFullscreen()">Full Screen</button>
+            <div class="image-counter" id="imageCounter">Images: 0</div>
+            <!-- Placeholder image added here -->
+            <img id="liveImage" src="yawcam-logo.png" alt="YamCam live stream">
+        </div>
+    </div>
+
+    <script>
+        // Variables
+        let intervalId = null;
+        let imageCounter = 0; // Counter for images loaded
+        let lastLoadedImage = "yawcam-logo.png"; // Track the last loaded image
+
+        // DOM Elements
+        const elements = {
+            image: document.getElementById('liveImage'),
+            status: document.getElementById('status'),
+            lastUpdate: document.getElementById('lastUpdate'),
+            urlInput: document.getElementById('urlInput'),
+            intervalInput: document.getElementById('intervalInput'),
+            startButton: document.getElementById('startButton'),
+            stopButton: document.getElementById('stopButton'),
+            forceRefreshButton: document.getElementById('forceRefreshButton'),
+            imageCounter: document.getElementById('imageCounter')
+        };
+
+        // Validate URL
+        function isValidUrl(url) {
+            try { return Boolean(new URL(url)); } 
+            catch { return false; }
+        }
+
+        // Start Auto Refresh
+        function startRefresh() {
+            const url = elements.urlInput.value.trim();
+            const interval = Math.min(Math.max(parseInt(elements.intervalInput.value), 1), 600);
+
+            if (!isValidUrl(url)) {
+                elements.status.textContent = "Please enter a valid URL";
+                elements.urlInput.focus();
+                return;
+            }
+
+            stopRefresh(); // Stop any existing interval
+            updateImage(url); // Load the first image immediately
+            
+            // Start the interval for auto-refresh
+            intervalId = setInterval(() => updateImage(url), interval * 1000);
+            elements.startButton.disabled = true;
+            elements.stopButton.disabled = false;
+            elements.status.textContent = `Active - refreshing every ${interval}s`;
+        }
+
+        // Stop Auto Refresh
+        function stopRefresh() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+            elements.startButton.disabled = false;
+            elements.stopButton.disabled = true;
+            elements.status.textContent = "Stopped";
+            // Do not change the image when stopped
+        }
+
+        // Force Refresh (Manual Refresh)
+        function forceRefresh() {
+            const url = elements.urlInput.value.trim();
+            if (url) {
+                updateImage(url);
+            }
+        }
+
+        // Update Image
+        function updateImage(url) {
+            // Add a cache-busting timestamp to the URL
+            const cacheBuster = `t=${Date.now()}`;
+            const imageUrl = `${url}?${cacheBuster}`;
+
+            // Reset the image source to force a fresh load
+            elements.image.src = '';
+            elements.image.src = imageUrl;
+
+            // Update the last loaded image
+            lastLoadedImage = imageUrl;
+
+            // Update the last updated timestamp
+            elements.lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+
+            // Increment the image counter
+            imageCounter++;
+            elements.imageCounter.textContent = `Images: ${imageCounter}`;
+
+            // Handle image load errors
+            elements.image.onerror = () => {
+                elements.status.textContent = "Error loading image";
+                elements.image.src = lastLoadedImage; // Show the last loaded image on error
+                stopRefresh();
+            };
+        }
+
+        // Toggle Image Fullscreen
+        function toggleImageFullscreen() {
+            if (!document.fullscreenElement) {
+                elements.image.requestFullscreen(); // Make only the image fullscreen
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Handle URL Parameters
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('url')) {
+            elements.urlInput.value = params.get('url');
+            if (params.has('autostart')) startRefresh();
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !intervalId) startRefresh();
+            if (e.key === 'Escape') stopRefresh();
+        });
+    </script>
+</body>
+</html>
